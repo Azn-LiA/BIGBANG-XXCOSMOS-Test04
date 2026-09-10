@@ -41,6 +41,9 @@
     --ultra-gold:#ffcf5c;
     --danger:#ff4d6d;
 
+    /* Couleur néon derrière le freebie gagnant — mise à jour en JS selon la couleur du tirage */
+    --reveal-glow-rgb: 255,61,154;
+
     /* ---- Type ---- */
     --font-display:'Orbitron', sans-serif;
     --font-body:'Space Grotesk', sans-serif;
@@ -199,33 +202,60 @@
   .bulb[data-color="pink"].on{ background:radial-gradient(circle at 40% 35%, #ffd6ec, var(--neon-pink) 60%, #4a0a2a); box-shadow:0 0 18px 6px var(--neon-pink), 0 0 46px 14px rgba(255,61,154,.55); }
   .bulb.win{ transform:scale(1.06); }
 
-  /* ---------- CTA draw button (now sits BELOW the light, horizontal shape) ---------- */
-  /* Couleur/­image par défaut : surchargées en JS depuis la personnalisation admin */
+  /* ---------- CTA draw button (below the light) ---------- */
+  /* Par défaut : le visuel "couronne" fourni ; personnalisable en couleur/­image depuis l'admin */
   #draw-btn{
     position:relative; z-index:5;
-    margin:18px auto 0;
-    width:78%;
-    max-width:280px;
-    height:58px;
-    border-radius:29px;
+    display:block;
+    margin:-22px auto 0; /* la couronne remonte légèrement sous le feu */
+    width:62%;
+    max-width:230px;
+    cursor:pointer;
+    border:none; background:none; padding:0;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  #draw-btn.hidden{ opacity:0; pointer-events:none; transform:scale(.85); height:0; margin:0 auto; overflow:hidden; }
+
+  /* Mode image (SVG/PNG fourni) : le visuel porte déjà sa forme, on ne fait qu'ajouter le texte par-dessus */
+  #draw-btn.has-image{
+    aspect-ratio:583.5 / 303.9;
+    animation:pulse-glow 2.6s ease-in-out infinite;
+  }
+  #draw-btn.has-image img{
+    width:100%; height:100%; object-fit:contain; display:block;
+  }
+  @keyframes pulse-glow{
+    0%,100%{ filter:drop-shadow(0 0 4px rgba(255,255,255,.15)); }
+    50%{ filter:drop-shadow(0 0 16px rgba(255,255,255,.4)); }
+  }
+
+  /* Mode couleur (pas d'image renseignée) : pilule classique */
+  #draw-btn.has-color{
+    height:58px; border-radius:29px;
     border:2px solid rgba(255,255,255,.25);
     background-image:linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,0) 60%);
     background-color:rgba(6,6,15,.55);
     background-size:cover; background-position:center;
     backdrop-filter:blur(3px);
-    color:var(--star-white);
-    font-family:var(--font-display); font-weight:700; font-size:14px; letter-spacing:2px;
-    text-shadow:0 2px 8px rgba(0,0,0,.85);
-    display:flex; align-items:center; justify-content:center; text-align:center;
-    cursor:pointer;
-    transition:opacity .35s ease, transform .35s ease;
+    display:flex; align-items:center; justify-content:center;
     animation:pulse 2.4s ease-in-out infinite;
   }
   @keyframes pulse{
     0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.08);}
     50%{ box-shadow:0 0 0 10px rgba(255,255,255,0);}
   }
-  #draw-btn.hidden{ opacity:0; pointer-events:none; transform:scale(.85); height:0; margin:0 auto; overflow:hidden; }
+
+  #draw-btn-label{
+    display:none; /* texte déjà intégré au visuel SVG fourni */
+    position:absolute; left:0; right:0; z-index:2;
+    color:var(--star-white);
+    font-family:var(--font-display); font-weight:700; font-size:14px; letter-spacing:2px;
+    text-shadow:0 2px 8px rgba(0,0,0,.85);
+    text-align:center; pointer-events:none;
+  }
+  /* Dans le visuel fourni, la pilule de texte occupe la partie basse (sous la couronne) */
+  #draw-btn.has-image #draw-btn-label{ top:72%; transform:translateY(-50%); }
+  #draw-btn.has-color #draw-btn-label{ position:static; transform:none; }
 
   #draw-count{
     position:relative; z-index:3;
@@ -237,9 +267,9 @@
   #reveal{
     position:absolute; inset:0; z-index:20;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at 50% 30%, rgba(255,61,154,.25), transparent 60%), rgba(6,6,15,.92);
+    background:radial-gradient(ellipse at 50% 30%, rgba(var(--reveal-glow-rgb),.25), transparent 60%), rgba(6,6,15,.92);
     opacity:0; pointer-events:none;
-    transition:opacity .5s ease;
+    transition:opacity .6s ease;
     padding:20px;
     text-align:center;
   }
@@ -254,7 +284,7 @@
   #reveal-img{
     width:320px; height:320px; border-radius:28px;
     background:var(--cosmos-panel); background-size:cover; background-position:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 25px 60px rgba(0,0,0,.6), 0 0 70px rgba(255,61,154,.35);
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 25px 60px rgba(0,0,0,.6), 0 0 70px rgba(var(--reveal-glow-rgb),.4);
     margin-bottom:22px;
     animation:reveal-pop .6s cubic-bezier(.2,1.4,.4,1);
   }
@@ -270,6 +300,19 @@
   }
   .confetti{ position:absolute; top:-10%; width:8px; height:14px; opacity:.9; animation:fall linear forwards; }
   @keyframes fall{ to{ transform:translateY(120vh) rotate(400deg); opacity:0;} }
+
+  /* ---------- Reveal flyer : le feu gagnant qui spin + grossit (plus grand que l'écran) pour "ouvrir" le reveal ---------- */
+  .reveal-flyer{
+    position:absolute; z-index:15;
+    margin:0;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    border-radius:50%; /* reste rond du début à la fin */
+    transition:transform 1.4s cubic-bezier(.25,.8,.35,1);
+    will-change:transform;
+    pointer-events:none;
+  }
+  .reveal-flyer img{ width:78%; height:78%; object-fit:contain; opacity:1 !important; filter:none !important; }
 
   /* ---------- Admin gear ---------- */
   #admin-fab{
@@ -382,7 +425,10 @@
     </div>
   </div>
 
-  <button id="draw-btn"></button>
+  <button id="draw-btn">
+    <img id="draw-btn-img" class="hidden" alt="">
+    <span id="draw-btn-label"></span>
+  </button>
 
   <div id="draw-count">0 tirage effectué</div>
 
@@ -453,9 +499,13 @@
         <div class="field"><label id="lbl-char-yellow">Personnage feu jaune — URL image (PNG transparent)</label><input id="cfg-char-yellow" placeholder="https://..."></div>
         <div class="field"><label id="lbl-char-pink">Personnage feu rose — URL image (PNG transparent)</label><input id="cfg-char-pink" placeholder="https://..."></div>
 
+        <div class="field" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="cfg-btn-use-image" style="width:auto;">
+          <label id="lbl-btn-use-image" for="cfg-btn-use-image" style="margin:0;">Utiliser une image pour le bouton</label>
+        </div>
         <div class="field-row">
           <div class="field"><label id="lbl-btn-color">Bouton de tirage — couleur</label><input type="color" id="cfg-btn-color" value="#ff3d9a"></div>
-          <div class="field"><label id="lbl-btn-image">Bouton de tirage — image (URL, prioritaire)</label><input id="cfg-btn-image" placeholder="https://..."></div>
+          <div class="field"><label id="lbl-btn-image">Bouton de tirage — image (URL, vide = visuel par défaut)</label><input id="cfg-btn-image" placeholder="https://..."></div>
         </div>
 
         <div class="field"><label id="lbl-pin">Code PIN administrateur (4 chiffres)</label><input id="cfg-pin" maxlength="4" inputmode="numeric"></div>
@@ -470,6 +520,12 @@
 <script>
 (function(){
   "use strict";
+
+  /* ============================================================
+     ASSET PAR DÉFAUT DU BOUTON DE TIRAGE (fourni par le graphiste,
+     encodé en base64 pour rester dans un fichier unique autonome)
+  ============================================================ */
+  const DEFAULT_DRAW_BTN_SVG = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iQ2FscXVlXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIiB2aWV3Qm94PSIwIDAgNTgzLjUgMzAzLjkiPgogIDwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAzMC41LjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiAyLjEuNCBCdWlsZCAxNjcpICAtLT4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLnN0MCB7CiAgICAgICAgc3Ryb2tlOiAjZmZmOwogICAgICAgIHN0cm9rZS1taXRlcmxpbWl0OiAxMDsKICAgICAgICBzdHJva2Utd2lkdGg6IC42cHg7CiAgICAgIH0KCiAgICAgIC5zdDEgewogICAgICAgIGZpbGw6ICNmZmY7CiAgICAgIH0KCiAgICAgIC5zdDIgewogICAgICAgIGZpbGw6ICNmN2MwMDY7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxyZWN0IGNsYXNzPSJzdDAiIHg9Ii4zIiB5PSIxMzQiIHdpZHRoPSI1ODIuOSIgaGVpZ2h0PSIxNjkuNyIgcng9Ijg0LjgiIHJ5PSI4NC44Ii8+CiAgPGc+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMzM1LjEsMTUwLjFjLTI5LjQsMy4xLTU4LjcsMy04Ny44LS4xLTYuNi0uNy0xMi42LTEuOC0xOS4yLTMuNS01LjgtMTMuNC0xMi4yLTI2LjMtMTkuMi0zOS4zLTEzLjUtMjUuMi0yMi45LTUyLjQtMjMuOC04MS4xLS4xLTMuOCwwLTksMi4xLTkuNywzLjQtMS4zLDExLjMsNi40LDE1LDEwLjQsMTQuOSwxNi40LDI2LjUsMzUuMywzNS4yLDU1LjcuMy42LDEsLjksMS40LjkuNiwwLDEuMi0uNSwxLjQtMS4yLDYuNi0yMS42LDE1LjQtNDMuMiwyOC44LTYxLjQsNS43LTcuNywxNC0xNi43LDIyLjQtMjAuNiwxLjEtLjUsMi41LjIsMy41LjgsMTMuOSw4LjIsMjQuOSwyNSwzMi40LDM5LjMsNywxMy41LDEyLjEsMjcuNSwxNi41LDQyLC4yLjYuOSwxLjEsMS4yLDEuMnMxLjItLjEsMS41LS44YzguNi0yMC43LDIzLjctNDUuNCw0MC02MC43LDIuOC0yLjYsNy40LTYuNSw5LjctNS43LDIuMy44LDIuMiw3LjQsMiwxMS44LTIsMzAuOC0xMC45LDUyLjktMjMuOSw4MC4xbC0xOC4xLDM3LjljLTcuMSwyLTEzLjUsMy4xLTIxLDMuOVoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik0zNTAuNywxNjIuMmMtNS45LDEuNC0xMS4zLDIuMy0xNy4zLDIuOS0yNiwyLjYtNTIsMi44LTc4LjEuNC03LjctLjctMTQuOS0xLjYtMjIuMy0zLjUtMS4xLS40LTIuOS0uNy0zLjEtMmwtMS4zLTkuNGM2LjcsMS43LDEzLjEsMi45LDIwLjEsMy42LDI4LjIsMyw1Ni40LDMuMSw4NC42LjEsNy44LS44LDE0LjktMiwyMi4zLTMuOWwtMS42LDkuN2MtLjIsMS4yLTIuMiwxLjQtMy4zLDEuOVoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNTguNSw1MC4zYy00LjgsOC05LjEsMTUuOC0xMi45LDI0LjUtMy41LTEwLjUtNy4yLTIwLjYtMTIuMS0zMC42LDQtNC45LDkuMi0xMS43LDEzLjctNy44bDUuMSw1LDYuMiw4LjhaIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjM4LjQsNzQuNWMtMy45LTguMy03LjgtMTYuMS0xMi44LTI0LDIuOS01LDYuMy05LjgsMTAuNS0xMy42LDUuMy00LjcsOS43LDEuOSwxNC40LDcuMy00LjgsOS44LTguNCwxOS40LTEyLjEsMzAuMloiLz4KICA8L2c+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTM4OS45LDE4NC41Yy0yLjMtLjEtNS4xLDEuNC01LjksNC43bC0xMy4xLDUzLjctMzQuNi02MS42Yy0xLjQtMi41LTUuNi0xLjMtNi42LDAtMS4xLDEuNS0yLjYsNS4yLS44LDguOWwzOC4xLDc1LjljMi41LDQuOSwxMS4xLTEuMywxMi4xLTUuNmwxNS43LTY5YzEuMS00LjYtMS44LTctNC45LTcuMloiLz4KICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNDMzLjEsMjE0LjNjLS4zLTMuOC00LjEtNC44LTYuNC00LjgtMy4yLDAtNS4zLDEuOS00LjksNi40bDMuNyw0NC43Yy4zLDMuNSw0LjEsNS4xLDYuMSw1LDIuOC0uMiw2LTIuNCw1LjUtNy44bC0zLjktNDMuNVoiLz4KICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNDMzLjYsMTk3LjZjMS03LjgtOC4zLTE2LjQtMTMuOC0xOS41LTMuNy0yLTYuNC43LTcuMiwyLjMtMy4xLDYuMywxOS4yLDMwLjgsMjEsMTcuMloiLz4KICA8Y2lyY2xlIGNsYXNzPSJzdDEiIGN4PSI0MDUuNSIgY3k9IjI1Ny4xIiByPSI3Ii8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTQ1OS40LDI1MS4xYy0zLjYtLjUtNi45LDItNy40LDUuNnMyLDYuOSw1LjYsNy40LDYuOS0yLDcuNC01LjZjLjUtMy42LTItNi45LTUuNi03LjRaIi8+CiAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTQ4OC4yLDIzMi43YzkuNS0xLjQsMTUuNC0zLjcsMjEuMy03LjgsNy44LTUuNiwxMC40LTE2LDUtMjQuNC0xOC4yLTI4LjUtNTAuOS0zNi4zLTQ4LjQtMTkuNGwxMS4xLDc2LjZjLjUsMy41LDMuOSw0LjEsNS43LDQuMiw5LjMuNywxLjktMTUuNiw1LjQtMjkuMlpNNDg0LjcsMjIwLjhsLTMuMy0zNGMxMi4xLDUuNCwxOS4xLDEyLjcsMjUuMiwyNC40LTYuOSw2LjktMTMuMSw4LjEtMjEuOSw5LjVaIi8+CiAgPGc+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODguNiwxOTAuNmMwLDEuNC4yLDIuNy4yLDQuMiwwLDEuNCwwLDIuOSwwLDQuNSwwLDMuMy0uMiw3LjQtLjUsMTIuMy0uMyw0LjktLjgsMTAuNy0xLjUsMTcuNC0uNyw2LjctMS4yLDEyLjUtMS41LDE3LjQtLjMsNS0uNSw5LjEtLjUsMTIuNXYzLjdjMCwxLjIsMCwyLjQuMSwzLjctLjksMi42LTIuNywzLjktNS42LDMuOS00LjEtLjItNi40LTItNi44LTUuNC0uMi0xLjYtLjMtMy40LS40LTUuMSwwLTEuOC0uMS0zLjYtLjEtNS42LDAtMy4zLjItNy4zLjYtMTIuMi40LTQuOCwxLTEwLjYsMS43LTE3LjIuOC02LjcsMS40LTEyLjQsMS44LTE3LjEuNC00LjguNy04LjguNy0xMi4xczAtMi41LDAtMy43YzAtMS4yLS4xLTIuNC0uMi0zLjcsMS0xLjgsMi42LTIuNyw0LjktMi43czMuNi41LDUuNSwxLjZjLjQtLjMuNy0uNC45LS40LjMsMCwuNC41LjQsMS40LDAsLjQtLjEuOS0uMSwxLjRzMCwuNi4xLjZsLjQuNloiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xMjIuNiwxNjdjMS4xLjUsMS43LDEuMSwyLDEuOS41LDEuNy43LDMuNC43LDQuOSwwLDMuMS0xLDYuOS0zLDExLjYtMS40LDMuNC0yLjYsNi4xLTMuNCw4LS44LDItMS4zLDMuNC0xLjUsNC4xLTIuMyw3LjYtNS42LDExLjQtOS44LDExLjRzLTEuNi0uMS0yLjMtLjRjLTItLjYtMi44LTIuMS0yLjItNC41LjMtMS4zLjktMy4zLDItNi4xLDEtMi44LDIuMy02LjUsNC0xMS4xLDEuMy0zLjYsMi4zLTYuOCwzLTkuOC44LTIuOSwxLjMtNS43LDEuNC04LjIuMi0yLDIuMS0yLjgsNS44LTIuM2wzLjMuNFoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yMTAuMywyMjUuNmMwLDMuOS4zLDcuNSwxLDEwLjkuNywzLjQsMS4zLDcuMSwxLjcsMTAuOS4yLDEuOS43LDMuOSwxLjcsNS45LjksMiwxLjQsNC4xLDEuNCw2LjFzLS43LDMuOS0yLDUuMWMtMS4zLDEuMi0yLjksMS43LTQuNywxLjdzLTMuNi0uOS00LjctMi44Yy0xLjEtMS45LTEuOS00LjEtMi41LTYuNS0uNS0yLjUtLjktNC45LTEuMS03LjItLjItMi40LS40LTQtLjctNS0uNi0xLjUtMS0zLjEtMS4yLTQuNy0uMi0xLjYtLjQtMy4yLS41LTQuNy0uMS0xLjUtLjMtMy4xLS40LTQuNi0uMS0xLjUtLjUtMy4xLS45LTQuOC0uOSwxLjYtMS44LDMuNC0yLjgsNS4zLTEsMS45LTIsMy44LTMsNS44LTEsMi0yLDMuOS0zLDUuOC0xLDEuOS0xLjgsMy42LTIuNSw1LjEtLjgsMS42LTEuNCwzLjItMS44LDQuNy0uNCwxLjUtLjgsMy0xLjIsNC40LS40LDEuNC0uOCwyLjktMS4zLDQuMy0uNSwxLjQtMS4yLDMtMiw0LjYtMS4yLjYtMi40LjktMy44LjlzLTMuMy0uNy00LjMtMmMtMS0xLjMtMS44LTMtMi4zLTUuMS0uNS0yLS45LTQuMS0xLjItNi40LS4yLTIuMi0uNS00LjItLjgtNS45LS4yLTEuOC0uNS0zLjgtLjgtNS45LS4zLTIuMS0uOC00LjItMS4zLTYuMy0uNS0yLjEtMS4xLTQtMS43LTUuOS0uNi0xLjgtMS4zLTMuMy0yLjEtNC41LTEuNCwxLjEtMi41LDIuNi0zLjUsNC41LTEsMS45LTEuOSwzLjktMi43LDYtLjgsMi4xLTEuNSw0LjEtMi4xLDYuMS0uNiwyLTEuMSwzLjUtMS42LDQuNy0xLjMsMi4yLTIuMSw0LjUtMi41LDYuNy0uNCwyLjMtLjksNC4zLTEuNCw2LjItLjUsMS45LTEuNCwzLjQtMi41LDQuNi0xLjEsMS4yLTMsMS44LTUuNiwxLjhzLTEuNS0uMy0yLjItLjhjLS43LS41LTEuMy0xLjItMS44LTItLjUtLjgtLjktMS42LTEuMi0yLjUtLjMtLjktLjQtMS43LS40LTIuNS4yLTEsLjMtMS45LjQtMi45LDAtMSwwLTIsMC0zczAtMSwuMS0yLjJjMC0xLjIuMi0yLjQuMy0zLjcsMC0xLjMuMi0yLjUuMy0zLjcsMC0xLjIuMS0xLjkuMS0yLjIsMC01LjQsMC05LjMtLjEtMTEuNiwwLTIuNC0uMi00LS4zLTQuOCwwLS45LS4yLTEuMy0uMy0xLjQsMCwwLS4xLS41LS4xLTEuMnMtLjItMi4xLS41LTNjLS4zLTEtLjUtMi0uNS0zcy42LTIuNSwxLjctMy41YzEuMi0xLDIuNC0xLjQsMy44LTEuNHMzLjEuNCw0LjEsMS4zYzEsLjksMS43LDIsMi4xLDMuMy40LDEuMy43LDIuNy44LDQuMiwwLDEuNS4xLDIuOC4xLDRzMCwyLjMtLjIsMy42Yy0uMSwxLjQtLjIsMi42LS4yLDMuOHMwLDEuNC4zLDIuM2MuNi0xLjMsMS4yLTIuNywyLTQuMi43LTEuNSwxLjUtMy4xLDIuMy00LjcuOC0xLjYsMS43LTMuMSwyLjUtNC42LjktMS40LDEuNy0yLjcsMi42LTMuOCwxLjItMS40LDIuNS0zLDQuMS00LjYsMS41LTEuNiwzLjMtMi40LDUuMi0yLjRzMy44LjUsNC45LDEuNGMxLjIsMSwyLDIuMiwyLjYsMy42LjYsMS40LDEsMy4xLDEuMiw0LjguMiwxLjguNiwzLjUuOSw1LC45LDIuOCwxLjcsNS45LDIuNCw5LjQuNywzLjUsMS40LDYuNiwyLjEsOS40LjItLjcuNS0xLjYuOS0yLjcuNC0xLjEuOS0yLjMsMS40LTMuNS41LTEuMiwxLTIuMywxLjQtMy4zLjUtMSwuOS0xLjgsMS4yLTIuNC45LTEuOCwxLjktMy44LDMtNiwxLjEtMi4yLDIuNC00LjIsMy45LTYuMSwxLjUtMS45LDMuMi0zLjUsNS4yLTQuOCwyLTEuMyw0LjMtMi4xLDYuOS0yLjMsMS4yLjYsMi4yLDEsMy4yLDEuNCwxLC4zLDEuOC45LDIuNSwxLjYuNy43LDEuMiwxLjgsMS42LDMuMy40LDEuNC42LDMuNS42LDYuMnYyLjJaIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMzExLjksMjYxLjJjLjMuOC42LDEuNi45LDIuNHMuNCwxLjYuNCwyLjQtLjIsMS40LS43LDEuOWMtLjQuNS0xLC45LTEuNiwxLjItLjYuMy0xLjMuNS0yLC43LS43LjEtMS4zLjItMS45LjItMS45LDAtMy41LTEuMS00LjgtMy4zLTEuMy0yLjItMi4zLTQuOS0zLTguMS0uOC0zLjItMS40LTYuNy0yLTEwLjMtLjUtMy42LTEtNi45LTEuNS05LjgtLjMsMi0xLjIsNC42LTIuOCw3LjctMS42LDMuMS0zLjYsNi4xLTYsOC45LTIuNCwyLjgtNS4xLDUuMy04LDcuMy0yLjksMi01LjgsMy04LjcsM3MtNC4yLS41LTUuNy0xLjRjLTEuNS0uOS0yLjYtMi0zLjQtMy40LS44LTEuMy0xLjMtMi45LTEuNi00LjYtLjMtMS43LS40LTMuMy0uNC00LjcsMC0zLjIuOC03LjEsMi40LTExLjgsMS42LTQuNywzLjgtOS4yLDYuNS0xMy43LDIuNy00LjQsNS45LTguMiw5LjYtMTEuNCwzLjYtMy4xLDcuNS00LjcsMTEuNS00LjdzMS45LjEsMywuNGMxLjEuMywyLjIuNywzLjQsMS4xLDEuMi40LDIuMywxLDMuMywxLjYsMS4xLjYsMiwxLjIsMi44LDEuOCwxLjYsMS40LDIuOCwzLjIsMy4zLDUuNXMxLDQuNywxLjMsNy4yYy43LDQuOCwxLjIsOS4yLDEuNiwxMy4xLjQsMy45LDEuMSw4LDIuMiwxMi40bC45LDUuNCwxLDIuOVpNMjcxLjEsMjUzLjdjMCwwLDAsLjIsMCwuMiwwLDAsMCwuMSwwLC4yLDEuMywwLDIuNy0uOSw0LjMtMi41LDEuNi0xLjYsMy4zLTMuNSw0LjktNS43LDEuNi0yLjIsMy4yLTQuNiw0LjYtNywxLjQtMi41LDIuNC00LjcsMy4xLTYuNi40LS45LjgtMS44LDEuNC0yLjkuNS0xLjEsMS4xLTIuMSwxLjYtMy4zLjUtMS4xLDEtMi4xLDEuMy0zLjEuMy0xLC41LTEuOC41LTIuNS0uNS0uMi0uOS0uNC0xLjMtLjYtLjQtLjItLjgtLjMtMS4zLS4zLTIuMSwwLTQsLjgtNS42LDIuNS0xLjYsMS42LTMuMSwzLjUtNC4zLDUuNS0xLjIsMi0yLjIsNC0zLDUuOS0uOCwxLjktMS4zLDMuMS0xLjYsMy41LTEuNCwyLjQtMi41LDUtMy40LDcuOC0uOSwyLjgtMS40LDUuNS0xLjQsOC4xdi43WiIvPgogIDwvZz4KPC9zdmc+";
 
   /* ============================================================
      TRADUCTIONS (interface fixe uniquement — les contenus libres
@@ -494,7 +550,8 @@
       lblCharYellow:"Personnage feu jaune — URL image (PNG transparent)",
       lblCharPink:"Personnage feu rose — URL image (PNG transparent)",
       lblBtnColor:"Bouton de tirage — couleur",
-      lblBtnImage:"Bouton de tirage — image (URL, prioritaire)",
+      lblBtnImage:"Bouton de tirage — image (URL, vide = visuel par défaut)",
+      lblBtnUseImage:"Utiliser une image pour le bouton",
       lblPin:"Code PIN administrateur (4 chiffres)",
       saveCustom:"Enregistrer",
       pinModalTitle:"ADMINISTRATION",
@@ -532,7 +589,8 @@
       lblCharYellow:"Yellow light character — image URL (transparent PNG)",
       lblCharPink:"Pink light character — image URL (transparent PNG)",
       lblBtnColor:"Draw button — color",
-      lblBtnImage:"Draw button — image (URL, overrides color)",
+      lblBtnImage:"Draw button — image (URL, empty = default visual)",
+      lblBtnUseImage:"Use an image for the button",
       lblPin:"Admin PIN code (4 digits)",
       saveCustom:"Save",
       pinModalTitle:"ADMIN",
@@ -587,7 +645,7 @@
         tagline:"let's found your VIP FREEBIES",
         logo:"", bg:"", frame:"",
         charBlue:"", charYellow:"", charPink:"",
-        drawBtnColor:"", drawBtnImage:"",
+        drawBtnUseImage:true, drawBtnColor:"#ff3d9a", drawBtnImage:"",
         pin:"2026"
       },
       freebies: defaultFreebies(),
@@ -653,11 +711,12 @@
     document.getElementById("lbl-char-pink").textContent = t("lblCharPink");
     document.getElementById("lbl-btn-color").textContent = t("lblBtnColor");
     document.getElementById("lbl-btn-image").textContent = t("lblBtnImage");
+    document.getElementById("lbl-btn-use-image").textContent = t("lblBtnUseImage");
     document.getElementById("lbl-pin").textContent = t("lblPin");
     document.getElementById("save-custom-btn").textContent = t("saveCustom");
     document.getElementById("pin-modal-title").textContent = t("pinModalTitle");
     document.getElementById("admin-modal-title").textContent = t("adminModalTitle");
-    document.getElementById("draw-btn").innerHTML = t("drawBtnHtml");
+    document.getElementById("draw-btn-label").textContent = t("drawBtnHtml");
     document.getElementById("reveal-label").textContent = t("revealLabel");
     document.getElementById("reveal-ultra-tag").textContent = t("revealUltra");
     document.getElementById("reveal-reset-btn").textContent = t("newDraw");
@@ -708,6 +767,7 @@
     document.getElementById("cfg-char-blue").value = c.charBlue;
     document.getElementById("cfg-char-yellow").value = c.charYellow;
     document.getElementById("cfg-char-pink").value = c.charPink;
+    document.getElementById("cfg-btn-use-image").checked = (c.drawBtnUseImage !== false);
     document.getElementById("cfg-btn-color").value = c.drawBtnColor || "#ff3d9a";
     document.getElementById("cfg-btn-image").value = c.drawBtnImage;
     document.getElementById("cfg-pin").value = c.pin;
@@ -718,15 +778,18 @@
   function applyDrawButtonStyle(){
     const c = data.config;
     const btn = document.getElementById("draw-btn");
-    if(c.drawBtnImage){
-      btn.style.backgroundImage = `url('${c.drawBtnImage}')`;
-      btn.style.backgroundColor = "rgba(6,6,15,.35)";
-    } else if(c.drawBtnColor){
-      btn.style.backgroundImage = "none";
-      btn.style.backgroundColor = c.drawBtnColor;
-    } else {
-      btn.style.backgroundImage = "";
+    const img = document.getElementById("draw-btn-img");
+    if(c.drawBtnUseImage !== false){
+      img.src = c.drawBtnImage || DEFAULT_DRAW_BTN_SVG;
+      img.classList.remove("hidden");
+      btn.classList.add("has-image");
+      btn.classList.remove("has-color");
       btn.style.backgroundColor = "";
+    } else {
+      img.classList.add("hidden");
+      btn.classList.remove("has-image");
+      btn.classList.add("has-color");
+      btn.style.backgroundColor = c.drawBtnColor || "#ff3d9a";
     }
   }
 
@@ -826,17 +889,73 @@
       bulbs.forEach(b=>b.classList.remove("on","win"));
       const finalBulb = bulbs.find(b=>b.dataset.color===finalColor);
       finalBulb.classList.add("on","win");
-      setTimeout(()=> showReveal(winner), 700);
+      setTimeout(()=> launchFlyer(finalBulb, ()=> showReveal(winner, finalColor)), 650);
     }
   }
 
-  function showReveal(winner){
+  /* Fait "voler" une copie du feu gagnant depuis sa position jusqu'au centre de
+     l'écran, en tournant sur lui-même et en grossissant, pour ouvrir le reveal. */
+  function launchFlyer(sourceBulb, onDone){
+    const app = document.getElementById("app");
+    const appRect = app.getBoundingClientRect();
+    const bulbRect = sourceBulb.getBoundingClientRect();
+
+    const flyer = document.createElement("div");
+    flyer.className = "bulb on win reveal-flyer";
+    flyer.dataset.color = sourceBulb.dataset.color;
+
+    const srcImg = sourceBulb.querySelector("img");
+    if(srcImg && !srcImg.classList.contains("hidden") && srcImg.src){
+      const clone = document.createElement("img");
+      clone.src = srcImg.src;
+      flyer.appendChild(clone);
+    }
+
+    flyer.style.left = (bulbRect.left - appRect.left) + "px";
+    flyer.style.top = (bulbRect.top - appRect.top) + "px";
+    flyer.style.width = bulbRect.width + "px";
+    flyer.style.height = bulbRect.height + "px";
+    flyer.style.transform = "translate(0,0) rotate(0deg) scale(1)";
+    app.appendChild(flyer);
+
+    sourceBulb.style.visibility = "hidden";
+
+    void flyer.offsetWidth; // force reflow avant transition
+
+    const targetSize = Math.hypot(appRect.width, appRect.height) * 1.15; // plus grand que l'écran, quel que soit l'appareil
+    const bulbCenterX = bulbRect.left + bulbRect.width/2;
+    const bulbCenterY = bulbRect.top + bulbRect.height/2;
+    const targetCenterX = appRect.left + appRect.width/2;
+    const targetCenterY = appRect.top + appRect.height/2;
+    const dx = targetCenterX - bulbCenterX;
+    const dy = targetCenterY - bulbCenterY;
+    const scale = targetSize / bulbRect.width;
+
+    requestAnimationFrame(()=>{
+      flyer.style.transform = `translate(${dx}px, ${dy}px) rotate(720deg) scale(${scale})`;
+    });
+
+    setTimeout(()=>{
+      flyer.style.transition += ", opacity .7s ease";
+      flyer.style.opacity = "0";
+      onDone();
+      setTimeout(()=>{
+        flyer.remove();
+        sourceBulb.style.visibility = "";
+      }, 700);
+    }, 1400);
+  }
+
+  const COLOR_RGB = { blue:"47,229,255", yellow:"255,225,77", pink:"255,61,154" };
+
+  function showReveal(winner, winColor){
     winner.stock = Math.max(0, winner.stock - 1);
     data.stats.total++;
     data.stats.byId[winner.id] = (data.stats.byId[winner.id]||0)+1;
     data.history.push({ id:winner.id, name:winner.name, ts:Date.now() });
     saveData();
 
+    document.getElementById("app").style.setProperty("--reveal-glow-rgb", COLOR_RGB[winColor] || COLOR_RGB.pink);
     document.getElementById("reveal-img").style.backgroundImage = winner.image ? `url('${winner.image}')` : "none";
     document.getElementById("reveal-name").textContent = winner.name;
     document.getElementById("reveal-ultra-tag").classList.toggle("show", !!winner.isUltra);
@@ -1047,6 +1166,7 @@
     data.config.charBlue = document.getElementById("cfg-char-blue").value.trim();
     data.config.charYellow = document.getElementById("cfg-char-yellow").value.trim();
     data.config.charPink = document.getElementById("cfg-char-pink").value.trim();
+    data.config.drawBtnUseImage = document.getElementById("cfg-btn-use-image").checked;
     data.config.drawBtnColor = document.getElementById("cfg-btn-color").value;
     data.config.drawBtnImage = document.getElementById("cfg-btn-image").value.trim();
     const pin = document.getElementById("cfg-pin").value.trim();
